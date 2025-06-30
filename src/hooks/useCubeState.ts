@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import { CubeState } from '../types/cube';
-import { createSolvedCube, isSolved } from '../utils/cubeUtils';
+import { isSolved } from '../utils/cubeUtils';
 import { ROTATION_FUNCTIONS } from '../utils/cubeRotations';
-import { solveCube, scrambleCube, SolveStep } from '../utils/cubeSolver';
+import { solveCube } from '../utils/cubeSolver';
+import { Cube } from '../utils/Cube';
 
 export const useCubeState = () => {
-  const [cube, setCube] = useState<CubeState>(createSolvedCube());
+  const [cube, setCube] = useState<CubeState>(Cube.createSolvedCube());
   const [isAnimating, setIsAnimating] = useState(false);
   const [rotationX, setRotationX] = useState(-25);
   const [rotationY, setRotationY] = useState(45);
@@ -50,7 +51,8 @@ export const useCubeState = () => {
     if (isAnimating) return;
     
     animateRotation(() => {
-      const { cube: scrambledCube } = scrambleCube(cube, 25);
+      // const { cube: scrambledCube } = scrambleCube(cube, 25);
+          const {scrambledCube} = new Cube(cube).scramble(cube, 25);
       setCube(scrambledCube);
     });
   }, [cube, isAnimating, animateRotation]);
@@ -101,7 +103,7 @@ export const useCubeState = () => {
     if (isAnimating) return;
     
     animateRotation(() => {
-      setCube(createSolvedCube());
+      setCube(Cube.createSolvedCube());
       setRotationX(-25);
       setRotationY(45);
       setRotationZ(0);

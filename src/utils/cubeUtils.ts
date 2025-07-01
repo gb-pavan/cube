@@ -59,3 +59,7 @@ export function isSolved(cube: CubeState): boolean {
     return face.every(row => row.every(cell => cell === firstColor));
   });
 }
+
+export function getColorAt(cube: CubeState, face: FaceName, row: number, col: number): string {
+  return cube[face][row][col];
+}

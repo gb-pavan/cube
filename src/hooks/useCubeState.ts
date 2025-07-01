@@ -52,7 +52,7 @@ export const useCubeState = () => {
     
     animateRotation(() => {
       // const { cube: scrambledCube } = scrambleCube(cube, 25);
-          const {scrambledCube} = new Cube(cube).scramble(cube, 25);
+      const {scrambledCube} = new Cube(cube).scramble(cube, 25);
       setCube(scrambledCube);
     });
   }, [cube, isAnimating, animateRotation]);

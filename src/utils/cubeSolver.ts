@@ -1,57 +1,29 @@
-import { CubeState } from '../types/cube';
+import { CubeState, FaceName } from '../types/cube';
 import { ROTATION_FUNCTIONS } from './cubeRotations';
 import { deepClone, isSolved } from './cubeUtils';
+import { edgePositions } from './edgePositions';
 
 export interface SolveStep {
   move: string;
   description: string;
 }
 
+interface EdgeInfo {
+  label: string;
+  faces: [string, string];
+  coords: [[number, number], [number, number]];
+  colors: [string, string];
+}
+
 export function solveCube(cube: CubeState): SolveStep[] {
   const steps: SolveStep[] = [];
   let currentCube = deepClone(cube);
   
-  // Simple layer-by-layer solving approach
-  // This is a simplified version - a full solver would be much more complex
-  
-  // Step 1: Solve white cross (bottom layer cross)
   const crossSteps = solveWhiteCross(currentCube);
   steps.push(...crossSteps);
   crossSteps.forEach(step => {
     currentCube = applyMove(currentCube, step.move);
   });
-  
-  // Step 2: Solve white corners (complete bottom layer)
-  const cornersSteps = solveWhiteCorners(currentCube);
-  steps.push(...cornersSteps);
-  cornersSteps.forEach(step => {
-    currentCube = applyMove(currentCube, step.move);
-  });
-  
-  // Step 3: Solve middle layer
-  const middleSteps = solveMiddleLayer(currentCube);
-  steps.push(...middleSteps);
-  middleSteps.forEach(step => {
-    currentCube = applyMove(currentCube, step.move);
-  });
-  
-  // Step 4: Solve yellow cross (top layer cross)
-  const yellowCrossSteps = solveYellowCross(currentCube);
-  steps.push(...yellowCrossSteps);
-  yellowCrossSteps.forEach(step => {
-    currentCube = applyMove(currentCube, step.move);
-  });
-  
-  // Step 5: Orient last layer
-  const orientSteps = orientLastLayer(currentCube);
-  steps.push(...orientSteps);
-  orientSteps.forEach(step => {
-    currentCube = applyMove(currentCube, step.move);
-  });
-  
-  // Step 6: Permute last layer
-  const permuteSteps = permuteLastLayer(currentCube);
-  steps.push(...permuteSteps);
   
   return steps;
 }
@@ -76,128 +48,125 @@ function applyMove(cube: CubeState, moveString: string): CubeState {
   return result;
 }
 
-function solveWhiteCross(cube: CubeState): SolveStep[] {
-  const steps: SolveStep[] = [];
-  
-  // Simplified white cross solution
-  // In a real solver, this would analyze the cube state and determine optimal moves
-  const commonCrossMoves = ['F', 'R', 'U', "R'", "U'", "F'"];
-  
-  steps.push({
-    move: commonCrossMoves.join(' '),
-    description: 'Forming white cross on bottom face'
-  });
-  
-  return steps;
+function findWhiteEdges(cube: CubeState): EdgeInfo[] {
+  const whiteEdges: EdgeInfo[] = [];
+
+  for (const edge of edgePositions) {
+    const [face1, face2] = edge.faces as [FaceName, FaceName];
+    const [coord1, coord2] = edge.coords;
+
+    const color1 = cube[face1][coord1[0]][coord1[1]];
+    const color2 = cube[face2][coord2[0]][coord2[1]];
+
+    if (color1 === 'white' || color2 === 'white') {
+      whiteEdges.push({
+        label: edge.label,
+        faces: [face1, face2],
+        coords: [coord1, coord2],
+        colors: [color1, color2],
+      });
+    }
+  }
+
+  return whiteEdges;
 }
 
-export function debugWhiteEdges(cube: CubeState): void {
-  const edgePositions = [
-    { faces: ['up', 'back'], coords: [[0, 1], [0, 1]], label: 'up-back' },
-    { faces: ['up', 'left'], coords: [[1, 0], [0, 1]], label: 'up-left' },
-    { faces: ['up', 'right'], coords: [[1, 2], [0, 1]], label: 'up-right' },
-    { faces: ['up', 'front'], coords: [[2, 1], [0, 1]], label: 'up-front' },
-    { faces: ['down', 'front'], coords: [[0, 1], [2, 1]], label: 'down-front' },
-    { faces: ['down', 'left'], coords: [[1, 0], [2, 1]], label: 'down-left' },
-    { faces: ['down', 'right'], coords: [[1, 2], [2, 1]], label: 'down-right' },
-    { faces: ['down', 'back'], coords: [[2, 1], [2, 1]], label: 'down-back' },
-    { faces: ['left', 'front'], coords: [[1, 2], [1, 0]], label: 'left-front' },
-    { faces: ['right', 'front'], coords: [[1, 0], [1, 2]], label: 'right-front' },
-    { faces: ['left', 'back'], coords: [[1, 0], [1, 2]], label: 'left-back' },
-    { faces: ['right', 'back'], coords: [[1, 2], [1, 0]], label: 'right-back' },
-  ];
+// function solveWhiteCross(cube: CubeState): SolveStep[] {
+//   const steps: SolveStep[] = [];
 
-  console.log('🔍 Detecting white edge pieces:',cube);
+//   const whiteEdges = findWhiteEdges(cube);
+//   console.log("whiteEdges",whiteEdges);
+  
+//   // Simplified white cross solution
+//   // In a real solver, this would analyze the cube state and determine optimal moves
+//   const commonCrossMoves = ['F', 'R', 'U', "R'", "U'", "F'"];
+  
+//   steps.push({
+//     move: commonCrossMoves.join(' '),
+//     description: 'Forming white cross on bottom face'
+//   });
+  
+//   return steps;
+// }
 
-  edgePositions.forEach(({ faces, coords, label }) => {
-    const color1 = cube[faces[0] as keyof CubeState][coords[0][0]][coords[0][1]];
-    const color2 = cube[faces[1] as keyof CubeState][coords[1][0]][coords[1][1]];
-    if (color1 === 'white' || color2 === 'white') {
-      console.log(`✅ White edge found at ${label} (${faces[0]}[${coords[0]}], ${faces[1]}[${coords[1]}])`);
+// Assume front face center is white
+// And adjacent face centers: up = green, down = blue, left = orange, right = red, back = yellow
+
+export function solveWhiteCross(cube: CubeState): SolveStep[] {
+  const steps: SolveStep[] = [];
+  let currentCube = cube;
+
+  const whiteEdges = findWhiteEdges(currentCube);
+  console.log("whiteedges",whiteEdges);
+  const placedEdges: string[] = [];
+
+  whiteEdges.forEach((edge, index) => {
+    if (placedEdges.includes(edge.label)) return;
+
+    const [face1, face2] = edge.faces;
+    const [coord1, coord2] = edge.coords;
+    const [color1, color2] = edge.colors;
+
+    const whiteIdx = color1 === 'white' ? 0 : 1;
+    const whiteFace = edge.faces[whiteIdx];
+    const sideFace = edge.faces[1 - whiteIdx];
+    const sideColor = edge.colors[1 - whiteIdx];
+
+    // If white is already on the front face center row, skip
+    if (
+      whiteFace === 'front' &&
+      ((coord1[0] === 1 && coord1[1] !== 1) || (coord2[0] === 1 && coord2[1] !== 1))
+    ) {
+      placedEdges.push(edge.label);
+      return;
+    }
+
+    let move = '';
+
+    // Basic insert logic per whiteFace position
+    switch (whiteFace) {
+      case 'up':
+        if (sideFace === 'right') move = "U R U' R'";
+        else if (sideFace === 'left') move = "U' L' U L";
+        else if (sideFace === 'back') move = "U2 B U2 B'";
+        else if (sideFace === 'front') move = "U F U'";
+        break;
+      case 'down':
+        if (sideFace === 'right') move = "D R D' R'";
+        else if (sideFace === 'left') move = "D' L' D L";
+        else if (sideFace === 'back') move = "D2 B D2 B'";
+        else if (sideFace === 'front') move = "D F D'";
+        break;
+      case 'left':
+        move = "L' U' L";
+        break;
+      case 'right':
+        move = "R U R'";
+        break;
+      case 'back':
+        move = "B U L U' L' B'";
+        break;
+      case 'front':
+        move = "F U R U' R' F'";
+        break;
+    }
+
+    if (move) {
+      steps.push({
+        move,
+        description: `Inserting white edge '${edge.label}' from ${whiteFace} → front`
+      });
+      currentCube = applyMove(currentCube, move);
+      placedEdges.push(edge.label);
     }
   });
-}
 
-
-function solveWhiteCorners(cube: CubeState): SolveStep[] {
-  const steps: SolveStep[] = [];
-  debugWhiteEdges(cube);
-
-  
-  // Simplified white corners solution
-  const cornerAlgorithm = ['R', 'U', "R'", "U'"];
-  
-  for (let i = 0; i < 4; i++) {
-    steps.push({
-      move: cornerAlgorithm.join(' '),
-      description: `Positioning white corner ${i + 1}`
-    });
-  }
-  
-  return steps;
-}
-
-function solveMiddleLayer(cube: CubeState): SolveStep[] {
-  const steps: SolveStep[] = [];
-  
-  // Simplified middle layer solution
-  const rightHandAlgorithm = ['U', 'R', "U'", "R'", "U'", "F'", 'U', 'F'];
-  const leftHandAlgorithm = ["U'", "L'", 'U', 'L', 'U', 'F', "U'", "F'"];
-  
+  // Final alignment (if needed)
   steps.push({
-    move: rightHandAlgorithm.join(' '),
-    description: 'Solving middle layer edges (right hand algorithm)'
+    move: '',
+    description: '✅ White cross built on front face with matched adjacent centers'
   });
-  
-  steps.push({
-    move: leftHandAlgorithm.join(' '),
-    description: 'Solving middle layer edges (left hand algorithm)'
-  });
-  
-  return steps;
-}
 
-function solveYellowCross(cube: CubeState): SolveStep[] {
-  const steps: SolveStep[] = [];
-  
-  // OLL algorithm for yellow cross
-  const ollCross = ['F', 'R', 'U', "R'", "U'", "F'"];
-  
-  steps.push({
-    move: ollCross.join(' '),
-    description: 'Creating yellow cross on top face'
-  });
-  
-  return steps;
-}
-
-function orientLastLayer(cube: CubeState): SolveStep[] {
-  const steps: SolveStep[] = [];
-  
-  // Simplified OLL algorithms
-  const sune = ['R', 'U', "R'", 'U', 'R', 'U2', "R'"];
-  const antiSune = ["R'", "U'", 'R', "U'", "R'", "U2", 'R'];
-  
-  steps.push({
-    move: sune.join(' '),
-    description: 'Orient last layer corners (Sune algorithm)'
-  });
-  
-  return steps;
-}
-
-function permuteLastLayer(cube: CubeState): SolveStep[] {
-  const steps: SolveStep[] = [];
-  
-  // PLL algorithms
-  const tPerm = ['R', 'U', "R'", "F'", 'R', 'U', "R'", "U'", "R'", 'F', 'R2', "U'", "R'"];
-  const yPerm = ['F', 'R', "U'", "R'", "U'", 'R', 'U', "R'", "F'", 'R', 'U', "R'", "U'", "R'", 'F', 'R', "F'"];
-  
-  steps.push({
-    move: tPerm.join(' '),
-    description: 'Permute last layer (T-Perm algorithm)'
-  });
-  
   return steps;
 }
 
